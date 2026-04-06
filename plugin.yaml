@@ -1,0 +1,7 @@
+name: comfyui-workflow
+version: "1.0"
+description: ComfyUI Workflow Runner - 讓 Agent 可以執行 ComfyUI workflow 進行圖片編輯或生成
+requires_env:
+  - COMFY_API_URL
+  - COMFY_TEMPLATE_DIR
+  - COMFY_OUTPUT_DIR

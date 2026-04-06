@@ -1,0 +1,142 @@
+{
+    "66": {
+        "inputs": {
+            "value": 1024
+        },
+        "class_type": "INTConstant",
+        "_meta": {
+            "title": "INT Constant"
+        }
+    },
+    "67": {
+        "inputs": {
+            "text": "%prompt%",
+            "clip": [
+                "70",
+                0
+            ]
+        },
+        "class_type": "CLIPTextEncode",
+        "_meta": {
+            "title": "CLIP Text Encode (Positive Prompt)"
+        }
+    },
+    "68": {
+        "inputs": {
+            "vae_name": "flux2-vae.safetensors"
+        },
+        "class_type": "VAELoader",
+        "_meta": {
+            "title": "載入 VAE"
+        }
+    },
+    "69": {
+        "inputs": {
+            "samples": [
+                "73",
+                0
+            ],
+            "vae": [
+                "68",
+                0
+            ]
+        },
+        "class_type": "VAEDecode",
+        "_meta": {
+            "title": "VAE 解碼"
+        }
+    },
+    "70": {
+        "inputs": {
+            "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+            "type": "flux2",
+            "device": "default"
+        },
+        "class_type": "CLIPLoader",
+        "_meta": {
+            "title": "載入 CLIP"
+        }
+    },
+    "71": {
+        "inputs": {
+            "unet_name": "flux2/snofsSexNudesAndOtherFunStuff_distilledV12Fp8.safetensors",
+            "weight_dtype": "fp8_e4m3fn"
+        },
+        "class_type": "UNETLoader",
+        "_meta": {
+            "title": "載入擴散模型"
+        }
+    },
+    "73": {
+        "inputs": {
+            "seed": 447638775894178,
+            "steps": 4,
+            "cfg": 1,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1,
+            "model": [
+                "71",
+                0
+            ],
+            "positive": [
+                "67",
+                0
+            ],
+            "negative": [
+                "76",
+                0
+            ],
+            "latent_image": [
+                "77",
+                0
+            ]
+        },
+        "class_type": "KSampler",
+        "_meta": {
+            "title": "KSampler"
+        }
+    },
+    "75": {
+        "inputs": {
+            "format": "WEBP",
+            "quality": 80,
+            "resize_factor": 1,
+            "compression_level": 6,
+            "save_image": true,
+            "output_prefix": "compressed_",
+            "output_path": "",
+            "images": [
+                "69",
+                0
+            ]
+        },
+        "class_type": "ImageCompressor",
+        "_meta": {
+            "title": "🐟Image Compressor"
+        }
+    },
+    "76": {
+        "inputs": {
+            "conditioning": [
+                "67",
+                0
+            ]
+        },
+        "class_type": "ConditioningZeroOut",
+        "_meta": {
+            "title": "條件設定（歸零）"
+        }
+    },
+    "77": {
+        "inputs": {
+            "width": "%width%",
+            "height": "%height%",
+            "batch_size": 1
+        },
+        "class_type": "EmptyFlux2LatentImage",
+        "_meta": {
+            "title": "空白 Flux 轉 Latent"
+        }
+    }
+}

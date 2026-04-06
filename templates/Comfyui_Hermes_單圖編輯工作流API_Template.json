@@ -1,0 +1,243 @@
+{
+    "7": {
+        "inputs": {
+            "text": "%prompt%",
+            "clip": [
+                "61",
+                0
+            ]
+        },
+        "class_type": "CLIPTextEncode",
+        "_meta": {
+            "title": "CLIP Text Encode (Positive Prompt)"
+        }
+    },
+    "28": {
+        "inputs": {
+            "value": "%height%"
+        },
+        "class_type": "INTConstant",
+        "_meta": {
+            "title": "INT Constant"
+        }
+    },
+    "52": {
+        "inputs": {
+            "vae_name": "flux2-vae.safetensors"
+        },
+        "class_type": "VAELoader",
+        "_meta": {
+            "title": "載入 VAE"
+        }
+    },
+    "53": {
+        "inputs": {
+            "format": "WEBP",
+            "quality": 80,
+            "resize_factor": 1,
+            "compression_level": 6,
+            "save_image": true,
+            "output_prefix": "compressed_",
+            "output_path": "",
+            "images": [
+                "54",
+                0
+            ]
+        },
+        "class_type": "ImageCompressor",
+        "_meta": {
+            "title": "🐟Image Compressor"
+        }
+    },
+    "54": {
+        "inputs": {
+            "samples": [
+                "58",
+                0
+            ],
+            "vae": [
+                "52",
+                0
+            ]
+        },
+        "class_type": "VAEDecode",
+        "_meta": {
+            "title": "VAE 解碼"
+        }
+    },
+    "58": {
+        "inputs": {
+            "seed": 988841947314523,
+            "steps": 4,
+            "cfg": 1,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 0.85,
+            "model": [
+                "59",
+                0
+            ],
+            "positive": [
+                "63:55",
+                0
+            ],
+            "negative": [
+                "63:60",
+                0
+            ],
+            "latent_image": [
+                "63:57",
+                0
+            ]
+        },
+        "class_type": "KSampler",
+        "_meta": {
+            "title": "KSampler"
+        }
+    },
+    "59": {
+        "inputs": {
+            "unet_name": "flux2/snofsSexNudesAndOtherFunStuff_distilledV12Fp8.safetensors",
+            "weight_dtype": "fp8_e4m3fn"
+        },
+        "class_type": "UNETLoader",
+        "_meta": {
+            "title": "載入擴散模型"
+        }
+    },
+    "61": {
+        "inputs": {
+            "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+            "type": "flux2",
+            "device": "default"
+        },
+        "class_type": "CLIPLoader",
+        "_meta": {
+            "title": "載入 CLIP"
+        }
+    },
+    "64": {
+        "inputs": {
+            "data": "%image%"
+        },
+        "class_type": "LoadImageFromBase64",
+        "_meta": {
+            "title": "Load Image From Base64"
+        }
+    },
+    "63:49": {
+        "inputs": {
+            "image": [
+                "63:51",
+                0
+            ]
+        },
+        "class_type": "GetImageSize",
+        "_meta": {
+            "title": "取得圖片尺寸"
+        }
+    },
+    "63:50": {
+        "inputs": {
+            "pixels": [
+                "63:51",
+                0
+            ],
+            "vae": [
+                "52",
+                0
+            ]
+        },
+        "class_type": "VAEEncode",
+        "_meta": {
+            "title": "VAE 編碼"
+        }
+    },
+    "63:51": {
+        "inputs": {
+            "width": [
+                "28",
+                0
+            ],
+            "height": [
+                "28",
+                0
+            ],
+            "upscale_method": "nearest-exact",
+            "keep_proportion": "resize",
+            "pad_color": "0, 0, 0",
+            "crop_position": "center",
+            "divisible_by": 16,
+            "device": "gpu",
+            "image": [
+                "64",
+                0
+            ]
+        },
+        "class_type": "ImageResizeKJv2",
+        "_meta": {
+            "title": "Resize Image v2"
+        }
+    },
+    "63:55": {
+        "inputs": {
+            "conditioning": [
+                "7",
+                0
+            ],
+            "latent": [
+                "63:50",
+                0
+            ]
+        },
+        "class_type": "ReferenceLatent",
+        "_meta": {
+            "title": "參考潛在空間"
+        }
+    },
+    "63:56": {
+        "inputs": {
+            "conditioning": [
+                "7",
+                0
+            ]
+        },
+        "class_type": "ConditioningZeroOut",
+        "_meta": {
+            "title": "條件設定（歸零）"
+        }
+    },
+    "63:57": {
+        "inputs": {
+            "width": [
+                "63:49",
+                0
+            ],
+            "height": [
+                "63:49",
+                1
+            ],
+            "batch_size": 1
+        },
+        "class_type": "EmptyFlux2LatentImage",
+        "_meta": {
+            "title": "空白 Flux 轉 Latent"
+        }
+    },
+    "63:60": {
+        "inputs": {
+            "conditioning": [
+                "63:56",
+                0
+            ],
+            "latent": [
+                "63:50",
+                0
+            ]
+        },
+        "class_type": "ReferenceLatent",
+        "_meta": {
+            "title": "參考潛在空間"
+        }
+    }
+}
