@@ -52,11 +52,76 @@ def _load_env(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+# Hardcoded node ID fallback map (legacy templates without _meta.name)
+# Format: {workflow_type: {node_name: node_id}}
+_FALLBACK_NODE_IDS: Dict[str, Dict[str, str]] = {
+    "image_edit": {
+        "input_image": "64",
+        "positive_prompt": "7",
+        "latent_height": "28",
+    },
+    "text_to_image": {
+        "positive_prompt": "67",
+        "latent_size": "77",
+    },
+}
+
+
+def _find_node_by_meta(workflow: Dict[str, Any], name: str) -> Optional[Dict[str, Any]]:
+    """Find a workflow node by its _meta.name field.
+
+    Args:
+        workflow: Loaded workflow template dict.
+        name: The _meta.name value to search for.
+
+    Returns:
+        The node dict if found, otherwise None.
+    """
+    for node in workflow.values():
+        if isinstance(node, dict) and node.get("_meta", {}).get("name") == name:
+            return node
+    return None
+
+
+def _get_node(workflow: Dict[str, Any], workflow_type: str, node_name: str) -> Optional[Dict[str, Any]]:
+    """Get a workflow node by name, with fallback to hardcoded IDs for legacy templates.
+
+    Args:
+        workflow: Loaded workflow template dict.
+        workflow_type: Type of workflow (image_edit or text_to_image).
+        node_name: Logical name of the node (e.g. "positive_prompt").
+
+    Returns:
+        The node dict if found, otherwise None.
+    """
+    # Try _meta.name first (preferred, portable)
+    node = _find_node_by_meta(workflow, node_name)
+    if node is not None:
+        logger.debug(f"Node '{node_name}' found via _meta.name")
+        return node
+
+    # Fallback to hardcoded ID (legacy templates)
+    fallback_ids = _FALLBACK_NODE_IDS.get(workflow_type, {})
+    legacy_id = fallback_ids.get(node_name)
+    if legacy_id is not None and legacy_id in workflow:
+        logger.warning(
+            f"Node '{node_name}' not found via _meta.name, "
+            f"falling back to legacy ID '{legacy_id}'. "
+            f"Consider adding '_meta.name: {node_name}' to this node in the template."
+        )
+        return workflow[legacy_id]
+
+    logger.error(f"Node '{node_name}' not found (neither via _meta.name nor legacy ID)")
+    return None
+
+
 def _get_template_path(workflow_type: str) -> Optional[str]:
     template_dir = _load_env("COMFY_TEMPLATE_DIR")
     if not template_dir:
         logger.warning("COMFY_TEMPLATE_DIR not set")
         return None
+    # Expand ~ to user's home directory
+    template_dir = os.path.expanduser(template_dir)
 
     template_map = {
         "image_edit": "Comfyui_Hermes_單圖編輯工作流API_Template.json",
@@ -170,6 +235,8 @@ def _run_workflow(
 
     api_url = _load_env("COMFY_API_URL")
     output_dir = _load_env("COMFY_OUTPUT_DIR", "/tmp/comfyui_output")
+    # Expand ~ to user's home directory
+    output_dir = os.path.expanduser(output_dir)
 
     if not api_url:
         logger.error("COMFY_API_URL not configured")
@@ -202,14 +269,40 @@ def _run_workflow(
                 }
             )
         img_b64 = _download_image_as_base64(image_url)
-        workflow["64"]["inputs"]["data"] = img_b64
-        workflow["7"]["inputs"]["text"] = prompt
-        workflow["28"]["inputs"]["value"] = height
+
+        input_node = _get_node(workflow, workflow_type, "input_image")
+        prompt_node = _get_node(workflow, workflow_type, "positive_prompt")
+        latent_node = _get_node(workflow, workflow_type, "latent_height")
+
+        if input_node is None or prompt_node is None or latent_node is None:
+            return json.dumps(
+                {"status": "error", "message": f"Required node not found in template for workflow_type: {workflow_type}"}
+            )
+
+        input_node["inputs"]["data"] = img_b64
+        prompt_node["inputs"]["text"] = prompt
+        latent_node["inputs"]["value"] = height
 
     elif workflow_type == "text_to_image":
-        workflow["67"]["inputs"]["text"] = prompt
-        workflow["77"]["inputs"]["width"] = width
-        workflow["77"]["inputs"]["height"] = height
+        prompt_node = _get_node(workflow, workflow_type, "positive_prompt")
+        latent_node = _get_node(workflow, workflow_type, "latent_size")
+
+        if prompt_node is None or latent_node is None:
+            return json.dumps(
+                {"status": "error", "message": f"Required node not found in template for workflow_type: {workflow_type}"}
+            )
+
+        prompt_node["inputs"]["text"] = prompt
+        latent_node["inputs"]["width"] = width
+        latent_node["inputs"]["height"] = height
+
+    else:
+        return json.dumps(
+            {"status": "error", "message": f"Unknown workflow_type: {workflow_type}"}
+        )
+
+    # Respect COMFY_TIMEOUT env var (default 600s)
+    timeout = int(os.getenv("COMFY_TIMEOUT", "600"))
 
     payload = {"prompt": workflow}
     logger.debug(f"Sending prompt to ComfyUI: {api_url}/prompt")
@@ -222,12 +315,12 @@ def _run_workflow(
         return json.dumps({"status": "error", "message": "Failed to get prompt_id"})
 
     logger.info(f"Prompt submitted, prompt_id: {prompt_id}")
-    result = _poll_for_result(api_url, prompt_id, output_dir)
+    result = _poll_for_result(api_url, prompt_id, output_dir, timeout=timeout)
 
     return json.dumps(
         {
             "status": "success",
-            "message": f"Image generated successfully",
+            "message": "Image generated successfully",
             "image_path": result["local_path"],
             "filename": result["filename"],
         }
@@ -304,11 +397,17 @@ def handle_comfyui_workflow(
         return json.dumps({"status": "error", "message": str(e)})
 
 
+def check_requirements() -> bool:
+    """Return True only when COMFY_API_URL is configured."""
+    return bool(os.getenv("COMFY_API_URL"))
+
+
 def register(ctx):
-    """Register the comfyui_workflow tool"""
+    """Register the comfyui_workflow tool."""
     ctx.register_tool(
         "comfyui_workflow",
         "comfyui-workflow",  # toolset name
         COMFYUI_WORKFLOW_SCHEMA,
         handle_comfyui_workflow,
+        check_fn=check_requirements,
     )

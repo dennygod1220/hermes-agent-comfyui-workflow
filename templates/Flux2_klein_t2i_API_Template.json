@@ -18,7 +18,8 @@
         },
         "class_type": "CLIPTextEncode",
         "_meta": {
-            "title": "CLIP Text Encode (Positive Prompt)"
+            "title": "CLIP Text Encode (Positive Prompt)",
+            "name": "positive_prompt"
         }
     },
     "68": {
@@ -136,7 +137,8 @@
         },
         "class_type": "EmptyFlux2LatentImage",
         "_meta": {
-            "title": "空白 Flux 轉 Latent"
+            "title": "空白 Flux 轉 Latent",
+            "name": "latent_size"
         }
     }
 }

@@ -9,7 +9,8 @@
         },
         "class_type": "CLIPTextEncode",
         "_meta": {
-            "title": "CLIP Text Encode (Positive Prompt)"
+            "title": "CLIP Text Encode (Positive Prompt)",
+            "name": "positive_prompt"
         }
     },
     "28": {
@@ -18,7 +19,8 @@
         },
         "class_type": "INTConstant",
         "_meta": {
-            "title": "INT Constant"
+            "title": "INT Constant",
+            "name": "latent_height"
         }
     },
     "52": {
@@ -122,7 +124,8 @@
         },
         "class_type": "LoadImageFromBase64",
         "_meta": {
-            "title": "Load Image From Base64"
+            "title": "Load Image From Base64",
+            "name": "input_image"
         }
     },
     "63:49": {
